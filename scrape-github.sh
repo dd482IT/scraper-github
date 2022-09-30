@@ -22,22 +22,54 @@ getHeader (){
 }
  
 # Run the getPages function to print out the header information of the api call, run awk and grep to extract the final page
-#getHeader > header.txt
+getHeader > header.txt
+headerFile=header.txt
 last_page=$(grep '^link:' header.txt | sed -e 's/^link:.*page=//g' -e 's/>.*$//g')
-echo "$last_page"
 page=1
-
 # Main loop, iterate until the page is not less than, needs to be changed but for now keep it. Does not consider file page
-while [ $page -lt $last_page ]
-do 
-    echo "Making Call..."
-    rest_call > allOutput.txt
-    echo "Sleeping for 5 seconds"
-    sleep 5 
-    page=$((page+1))
-    echo "CURRENT ITERATION ${page}, STOPS AT ${last_page}"
-done
 
-#rest_call > return.json
-#cat return.json | jq '.items[].html_url' > output.txt
+echo $last_page
+# Check header if there is an error code
+if [[ -f $headerFile ]]; then
+    code=$(grep "^HTTP" header.txt)
+    if [[ "$code" == *"200"* ]]; 
+    then
+        [ -z "$last_page" ] && { echo "[LAST PAGE NOT SET]"; exit 1;} 
+        echo "[Header Call Successful]"
+        while [ $page -lt $last_page ]
+        do 
+            echo "[Making Call...]"
+            rest_call | grep "html_url" >> links.txt
+            echo "[Sleeping for 10 seconds]"
+            sleep 10 
+            page=$((page+1))
+            echo "CURRENT ITERATION ${page}, STOPS AT ${last_page}"
+        done
+    elif [[ "$code" == *"403"* ]]; then
+        echo "[ERROR] 403 Code"
+        exit 0
+    elif [[ -z "$code" ]]; then
+        if grep -q "rate" "$File"; then
+            echo "[Too many calls, exiting...]"
+            exit 0
+        fi
+    else 
+        echo "[ERROR] OTHER "
+        exit 0
+    fi
+else
+    echo "[ERROR] header does not exist"
+    exit 0
+fi
+
+
+
+
+
+
+
+
+
+
+
 
