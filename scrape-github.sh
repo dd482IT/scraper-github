@@ -6,7 +6,7 @@ if [ ${#@} -lt 1 ]; then
     exit 1
 fi
 
-GITHUB_TOKEN=$(cat $1)
+GITHUB_TOKEN=$(cat "$1")
 EXPRESSION="import+org.checkerframework.checker.*.qual"
 
 rest_call (){
@@ -32,7 +32,6 @@ page=1
 # Check header if there is an error code
 if [[ -f $headerFile ]]; then
     code=$(grep "^HTTP" header.txt)
-    echo $code
     if [[ "$code" == *"200"* ]]; 
     then
         [ -z "$last_page" ] && { echo "[LAST PAGE NOT SET]"; exit 1;} 
@@ -40,11 +39,13 @@ if [[ -f $headerFile ]]; then
         while [ "$page" -lt "$last_page" ]
         do 
             echo "[Making Call...]"
-            rest_call | jq ".items[].repository.html_url?" >> links.txt
+            #rest_call | jq ".items[].repository.html_url?" >> links.txt
+            rest_call > response.json
+            jq ".items[].repository.html_url?" response.json >> links.txt
             #if grep -q "$link"; then
             #echo "[Sleeping for 10 seconds]"
             #done
-            sleep 10 
+            sleep 30
             page=$((page+1))
             echo "CURRENT ITERATION ${page}, STOPS AT ${last_page}"
         done
@@ -65,6 +66,8 @@ else
     echo "[ERROR] header does not exist"
     exit 0
 fi
+
+uniq links.txt > unique_links.txt
 
 
 
