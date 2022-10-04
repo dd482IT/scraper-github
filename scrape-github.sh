@@ -26,7 +26,6 @@ getHeader (){
 # Run the getPages function to print out the header information of the api call, run awk and grep to extract the final page
 getHeader > header.txt
 headerFile=header.txt
-echo $headerFile
 last_page=$(grep '^link:' header.txt | sed -e 's/^link:.*page=//g' -e 's/>.*$//g')
 page=1
 # Main loop, iterate until the page is not less than, needs to be changed but for now keep it. Does not consider file page
@@ -41,7 +40,7 @@ if [[ -f $headerFile ]]; then
         while [ "$page" -lt "$last_page" ]
         do 
             echo "[Making Call...]"
-            rest_call | grep "project_link" >> links.txt
+            rest_call | jq ".items[].repository.html_url?" >> links.txt
             #if grep -q "$link"; then
             #echo "[Sleeping for 10 seconds]"
             #done
