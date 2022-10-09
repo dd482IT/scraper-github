@@ -8,22 +8,21 @@ fi
 
 GITHUB_TOKEN=$(cat "$1")
 
-EXPRESSION1="import+org.checkerframework.checker.nullness.qual.*;"
-EXPRESSION2="Annotations+from+the+Checker+Framework:+nullness,+interning,+locking"
-EXPRESSION3="apply+plugin:+'org.checkerframework'"
+EXPRESSION1="Annotations+from+the+Checker+Framework:+nullness,+interning,+locking"
+EXPRESSION2="org.checkerframework+in:file+build.gradle"
 #are longer than 256 characters (not including operators or qualifiers).
 #have more than five AND, OR, or NOT operators.
 
 rest_call (){
     curl --request GET \
-    --url "https://api.github.com/search/code?q="${EXPRESSION1}"&q="${EXPRESSION2}"&page=${page}" \
+    --url "https://api.github.com/search/code?q=${EXPRESSION2}&page=${page}" \
     --header "Accept: application/vnd.github.v3+json" \
     --header "Authorization: Bearer ${GITHUB_TOKEN}"
 }       
 
 getHeader (){
     curl -I -s --request GET \
-    --url "https://api.github.com/search/code?q="${EXPRESSION1}"&q="${EXPRESSION2}"" \
+    --url "https://api.github.com/search/code?q=${EXPRESSION2}" \
     --header "Accept: application/vnd.github.v3+json" \
     --header "Authorization: Bearer ${GITHUB_TOKEN}"
 }
@@ -49,7 +48,7 @@ if [[ -f $headerFile ]]; then
         while [ "$page" -lt "$last_page" ]
         do 
             echo "[Making Call... Wating 45 seconds]"
-            sleep 30
+            sleep 45
             #rest_call | jq ".items[].repository.html_url?" >> links.txt
             rest_call > response.json
             cat ./response.json
@@ -85,17 +84,6 @@ rm ./links.txt
 rm ./response.json
 
 grep -v "tutorial" output.txt > tmpfile && mv tmpfile final.txt
-
-
-### TO DO #### 
-# Clean results if the line contains "tutorial"
-
-
-
-
-
-
-
 
 
 
