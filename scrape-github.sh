@@ -11,18 +11,19 @@ GITHUB_TOKEN=$(cat "$1")
 #are longer than 256 characters (not including operators or qualifiers).
 #have more than five AND, OR, or NOT operators.
 
-EXPRESSIONS=("Annotations+from+the+Checker+Framework:+nullness,+interning,+locking" "org.checkerframework+in:file+build.gradle")
+EXPRESSIONS=("id+'org.checkerframework'+version")
+#"Annotations+from+the+Checker+Framework:+nullness,+interning,+locking" 
 
 rest_call (){
     curl --request GET \
-    --url "https://api.github.com/search/code?q=${EXPRESSION}&page=${page}" \
+    --url "https://api.github.com/search/code?q="${EXPRESSION}"&page=${page}" \
     --header "Accept: application/vnd.github.v3+json" \
     --header "Authorization: Bearer ${GITHUB_TOKEN}"
 }       
 
 getHeader (){
     curl -I -s --request GET \
-    --url "https://api.github.com/search/code?q=${EXPRESSION}" \
+    --url "https://api.github.com/search/code?q="${EXPRESSION}"" \
     --header "Accept: application/vnd.github.v3+json" \
     --header "Authorization: Bearer ${GITHUB_TOKEN}"
 }
@@ -42,7 +43,7 @@ do
     getHeader > header.txt
     echo "[SLEEPING AFTER HEADER]"
     cat header.txt 
-    sleep 30 #Sleep after getHeader to not cause rate limiting. 
+    sleep 60 #Sleep after getHeader to not cause rate limiting. 
     headerFile=header.txt #Save header output
 
     last_page=$(grep '^link:' header.txt | sed -e 's/^link:.*page=//g' -e 's/>.*$//g')
@@ -58,14 +59,11 @@ do
             while [ "$page" -lt "$last_page" ]
             do 
                 echo "[Making Call... Wating 45 seconds]"
-                sleep 45
-                #rest_call | jq ".items[].repository.html_url?" >> links.txt
+                sleep 60
                 rest_call > response.json
                 cat ./response.json
                 jq ".items[].repository.html_url?" response.json >> links.txt
-                #if grep -q "$link"; then
-                #echo "[Sleeping for 10 seconds]"
-                #done
+                rm ./response.json
                 page=$((page+1))
                 echo "CURRENT ITERATION ${page}, STOPS AT ${last_page}"
             done
@@ -89,12 +87,7 @@ do
     fi
     echo "[Successfully Completed]"
     echo "[Cleaning Directory]"
-    sleep 5
-    echo ["Total links collecte"]
-    wc links.txt
     uniq links.txt >> output.txt
-    echo ["Total unique links collected"]
-    wc output.txt 
     rm ./links.txt
 done
 
