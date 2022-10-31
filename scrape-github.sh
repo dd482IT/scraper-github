@@ -33,10 +33,9 @@ do
       exit 0
     fi
 
-    getHeader > header.txt
+    getHeader > header.txt && sleep 60
     echo "[SLEEPING AFTER HEADER]"
-    cat header.txt 
-    sleep 60 #Sleep after getHeader to not cause rate limiting. 
+    #cat header.txt uncomment for debugging 
     headerFile=header.txt #Save header output
 
     last_page=$(grep '^link:' header.txt | sed -e 's/^link:.*page=//g' -e 's/>.*$//g')
