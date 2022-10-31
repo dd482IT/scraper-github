@@ -1,17 +1,13 @@
 #!/usr/bin/bash
 
-#Checks arguments for a token file (will be improved)
 if [ ${#@} -lt 1 ]; then
     echo "usage:[your github token file]"
     exit 1
 fi
 
 GITHUB_TOKEN=$(cat "$1")
-
-#are longer than 256 characters (not including operators or qualifiers).
-#have more than five AND, OR, or NOT operators.
-
-EXPRESSIONS=("id+'org.checkerframework'+version")
+EXPRESSIONS=("org.checkerframework+in:file+build")
+#"org.checkerframework+in:file+build.gradle"
 #"Annotations+from+the+Checker+Framework:+nullness,+interning,+locking" 
 
 rest_call (){
@@ -28,12 +24,9 @@ getHeader (){
     --header "Authorization: Bearer ${GITHUB_TOKEN}"
 }
  
-# Run the getPages function to print out the header information of the api call, run awk and grep to extract the final page
 for i in ${!EXPRESSIONS[@]};
 do
-    #Pull each expression,
     EXPRESSION=${EXPRESSIONS[i]}
-    #If no expression, stop. 
     if [ -z "$EXPRESSION" ]
     then
       echo "[Expression not set]" 
@@ -48,8 +41,6 @@ do
 
     last_page=$(grep '^link:' header.txt | sed -e 's/^link:.*page=//g' -e 's/>.*$//g')
     page=1
-    # Main loop, iterate until the page is not less than, needs to be changed but for now keep it. Does not consider file page
-    # Check header if there is an error code
     if [[ -f $headerFile ]]; then
         code=$(grep "^HTTP" header.txt)
         if [[ "$code" == *"200"* ]]; 
@@ -58,14 +49,18 @@ do
             echo "[Header Call Successful]"
             while [ "$page" -lt "$last_page" ]
             do 
-                echo "[Making Call... Wating 45 seconds]"
-                sleep 60
-                rest_call > response.json
-                cat ./response.json
+                echo "CURRENT ITERATION ${page}, STOPS AT ${last_page}"
+                echo "[Making Call... Waiting for 30 seconds]" && sleep 30
+                rest_call > response.json && response=response.json
+                if grep "secondary rate limit" "$response"; 
+                then
+                    echo "SECONDARY RATE LIMITED, WAITING:" && sleep 30
+                    echo "Retrying..."
+                    continue
+                fi
                 jq ".items[].repository.html_url?" response.json >> links.txt
                 rm ./response.json
                 page=$((page+1))
-                echo "CURRENT ITERATION ${page}, STOPS AT ${last_page}"
             done
         elif [[ "$code" == *"403"* ]]; then
             echo "[ERROR] 403 Code"
@@ -89,8 +84,7 @@ do
     echo "[Cleaning Directory]"
     uniq links.txt >> output.txt
     rm ./links.txt
-done
+done    
 
 rm ./header.txt
 rm ./links.txt
-rm ./response.json
